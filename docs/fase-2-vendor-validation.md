@@ -178,3 +178,69 @@ yang bisa diakses") sudah gak valid:
    mis. `broker_stock_activity`) dan `docs/api-contract.md` (endpoint
    Bandarmology dkk naik dari placeholder ke kontrak v1 beneran) sebelum
    lanjut nulis ingestion sync job yang manggil GOAPI.
+
+## Update 2026-07-18: Opsi C — cek coverage Sectors.app untuk Stock Summary
+
+Konteks: GOAPI ternyata gak cover Stock Summary lengkap (lihat
+`docs/fase-2-worker-network-test.md` — field `value`, `frequency`,
+`bid`/`offer` gak ada di endpoint harga GOAPI manapun). Sebelum commit
+ke arsitektur Opsi A (ingestion dari jaringan non-datacenter), dicek
+dulu apakah Sectors.app (kandidat vendor lain) punya data lebih lengkap
+buat Stock Summary. Dicek via OpenAPI spec resmi mereka di GitHub
+(`supertypeai/sectors_api_docs`), bukan live fetch (situsnya block
+automated fetch, sama kayak sebelumnya).
+
+**Endpoint `GET /v2/daily/{symbol}/`** (Daily Transaction Data):
+```json
+{ "symbol": "BBCA.JK", "date": "2025-05-02", "close": 8975, "volume": 92219000, "market_cap": 1095329638012500 }
+```
+Cuma `close`, `volume`, `market_cap`. **Bahkan gak ada open/high/low** —
+lebih terbatas dari GOAPI yang minimal punya OHLC penuh.
+
+**Endpoint `GET /v2/foreign-flow/{symbol}/`** (Daily Net Foreign Inflow):
+```json
+{ "date": "2025-05-02", "net_foreign_inflow": 199859810000 }
+```
+Net foreign flow dalam Rupiah (bukan lot, bukan split buy/sell terpisah
+— cuma net). Field ini justru lebih lengkap dari GOAPI (yang gak expose
+foreign flow di endpoint harga sama sekali, cuma bisa didapat imply dari
+broker_summary kalau mau dijumlahkan manual per broker asing).
+
+**Dicek juga seluruh spec (`grep` field name di full OpenAPI JSON):
+gak ada `frequency`, `bid`, `offer`, `open`, `high`, `low` di endpoint
+manapun di Sectors.app v2** — bukan cuma di endpoint daily, di semua 60+
+endpoint yang ter-dokumentasi.
+
+### Kesimpulan: TIDAK ADA vendor (GOAPI maupun Sectors.app) yang cover Stock Summary lengkap sesuai schema `stock_summary`
+
+| Field wajib di schema | GOAPI | Sectors.app |
+| :--- | :--- | :--- |
+| open/high/low/close | ✅ (OHLC lengkap) | ❌ (cuma close) |
+| volume | ✅ | ✅ |
+| value (Rupiah traded) | ❌ | ❌ (ada market_cap, beda konsep) |
+| frequency | ❌ | ❌ |
+| foreign_buy/foreign_sell | ❌ (gak ada di endpoint harga) | ~ (ada net_foreign_inflow, Rupiah, bukan lot, bukan split buy/sell) |
+| bid/offer (order book) | ❌ | ❌ |
+
+Gak ada satupun vendor yang genuinely proper punya `frequency` atau
+`bid`/`offer` — dua-duanya kosong di semua vendor yang dicek. Ini bukan
+soal salah pilih vendor, kemungkinan besar karena data granular level
+itu (frequency transaksi, order book depth) memang cuma dijual lewat
+IDX Data Services resmi (data feed member/vendor institusional), bukan
+lewat vendor consumer-grade macam GOAPI/Sectors yang fokusnya harga +
+analytics turunan.
+
+### Dampak ke keputusan Opsi A/B/C
+
+- **Opsi B (GOAPI penuh buat Stock Summary): tetap gugur.**
+- **Opsi C (Sectors.app buat Stock Summary): gugur juga** — malah lebih
+  minim dari GOAPI (gak ada OHLC penuh).
+- **Kombinasi vendor** (GOAPI buat OHLC+volume, Sectors buat
+  net_foreign_inflow) bisa nutup Top Accumulation + Transaction Chart +
+  Seasonality, TAPI tetap gak nutup `frequency` (dipakai di Market
+  Summary) dan `bid`/`offer` (basis Balance Position Chart) — dua fitur
+  ini tetap butuh Opsi A (ingestion dari jaringan Kris) kalau mau tetap
+  di v1, atau turun status kalau Kris terima kompromi.
+- **Opsi A tetap relevan**, minimal buat field yang gak ada di vendor
+  manapun. Pertanyaannya sekarang bukan lagi "pakai vendor atau Opsi A"
+  tapi "seberapa besar porsi Stock Summary yang tetap harus lewat Opsi A."
