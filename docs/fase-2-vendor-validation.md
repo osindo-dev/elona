@@ -121,6 +121,27 @@ atau agregasi dari tempat lain) tidak diketahui pasti. Tidak mengubah
 kesimpulan bahwa datanya valid dan bisa dipakai — tapi relevan untuk
 due-diligence kalau mau commit jangka panjang ke vendor ini.
 
+## Harga GOAPI.IO Stock Market IDX (dicek 2026-07-18, app.goapi.io/marketplace)
+
+Free Trial (dipakai buat validasi di atas) sudah terpakai untuk akun ini,
+gak bisa dipakai ulang. Dua tier berbayar:
+
+| Tier | Endpoint | Limit | 1 bulan | 3 bulan | 6 bulan |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Developer | All endpoints (Data Saham IDX) | tanpa limit harian, **20.000 request/bulan** | Rp 550.000 | Rp 1.467.000 (Rp 489.000/bln) | Rp 2.388.000 (Rp 398.000/bln) |
+| Enterprise | All Endpoint | **Unlimited requests** | Rp 955.000 | Rp 2.397.000 (Rp 799.000/bln) | Rp 4.680.000 (Rp 780.000/bln) |
+
+Belum checkout/subscribe ke tier manapun — masih di Free Trial (expired
+~2026-08-01). Ini murni cek harga, nunggu keputusan Kris sebelum bayar.
+
+**Estimasi kebutuhan volume:** kalau sync `broker_summary` harian untuk
+~900 saham IDX × 1 request/saham/hari × ~21 hari bursa/bulan ≈ **~18.900
+request/bulan** — mepet ke limit 20.000/bulan tier Developer. Kalau nanti
+nambah fitur lain yang juga hit GOAPI (top gainer, index, dst) atau mau
+retry-safety margin, kemungkinan perlu Enterprise (unlimited) atau
+strategi caching/batasi saham yang di-sync (mis. cuma yang di LQ45 atau
+volume tinggi, bukan semua 900 saham).
+
 ## Dampak ke keputusan Fase 1 (BELUM DIEKSEKUSI — nunggu keputusan Kris)
 
 Keputusan Fase 1 di `docs/schema-diagram.md` dan `docs/api-contract.md`
