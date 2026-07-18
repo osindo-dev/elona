@@ -38,6 +38,41 @@ laporan KSEI (Kustodian Sentral Efek Indonesia), bukan dari GOAPI/scraping
 real-time. Di luar scope validasi broker summary tapi relevan kalau elona
 mau fitur Analisa Kepemilikan/Scripless/Nominee di masa depan.
 
+### Update 2026-07-18: arsitektur NeoBDM & koreksi penting soal "Balance Position Chart"
+
+Dicek network request pas buka halaman NeoBDM (`read_network_requests`)
+— ternyata NeoBDM dibangun pakai **Django + Plotly Dash**
+(`django_plotly_dash`), server-side rendered. Semua fetch data kejadian
+di backend Django mereka sendiri (browser cuma manggil `neobdm.tech`,
+gak pernah manggil domain vendor API langsung dari client). Artinya:
+gak bisa diintip dari mana data mereka datang lewat network tab — beda
+dari kalau mereka pakai client-side fetch ke API pihak ketiga. Implikasi
+buat elona: kalau ingestion IDX cuma bisa jalan dari jaringan non-
+datacenter (lihat `docs/fase-2-worker-network-test.md`), NeoBDM
+kemungkinan besar juga jalanin scraping/ingestion dari server mereka
+sendiri (bukan serverless/edge cloud) — konsisten sama pola yang sama
+kita hadapi, bukan bukti mereka nemu jalan pintas ajaib.
+
+**Koreksi penting:** "Balance Position Chart" NeoBDM (dicek di halaman
+`/stock_detail/BBCA/`) **BUKAN order book bid/offer real-time** — itu
+chart **komposisi kepemilikan** (Foreign/Local dipecah lagi jadi
+Bank/Asuransi/Dana Pensiun/Individual/Korporat/dst, plus garis
+`%Institution`/`%Retail`/`%Foreign`), sumbernya dari data KSEI bulanan
+(sama kayak KDA-PKDA di atas), BUKAN dari `bid`/`offer`/`bid_volume`/
+`offer_volume` transaksi harian.
+
+**Ini butuh direvisi di desain elona**: `docs/api-contract.md` saat ini
+mendefinisikan "Balance Position Chart" pakai field
+`bid`/`offer`/`bid_volume`/`offer_volume` (order book), yang ternyata
+salah tafsir dari nama fitur aslinya. Field itu justru dua dari tiga
+field yang dikonfirmasi TIDAK ada di vendor manapun (GOAPI, Sectors.app —
+lihat `docs/fase-2-vendor-validation.md`). Kalau "Balance Position Chart"
+versi elona diselaraskan ke makna asli NeoBDM (komposisi kepemilikan
+Foreign/Local per kategori investor, data bulanan dari KSEI, bukan order
+book harian), **kebutuhan `bid`/`offer` di skema `stock_summary` bisa
+jadi gak relevan sama sekali** — tinggal `frequency` yang masih jadi gap.
+Ini perlu dikonfirmasi ke Kris sebelum revisi schema/api-contract.
+
 ## 2. Logic kategorisasi Bandarmology
 
 NeoBDM klasifikasi broker ke beberapa "cohort" (kelompok perilaku), dua
