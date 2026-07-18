@@ -3,6 +3,12 @@
 Tanggal validasi: 2026-07-18. Tanggal bursa yang dicoba: 2026-07-17 (hari
 bursa terakhir sebelum tanggal validasi).
 
+**Status keputusan (2026-07-18): DITERIMA (sementara).** Bandarmology /
+Broker Stalker / Broker Summary turun status ke v2-placeholder, sejajar
+Scripless/Nominee/Done Detail. Keputusan bisa direvisi kalau muncul
+re-verifikasi dari network lain atau sumber data alternatif (lihat opsi
+v1+ di bagian Kesimpulan).
+
 ## Ringkasan Eksekutif
 
 **TIDAK BISA dipastikan lewat live fetch** — seluruh domain `www.idx.co.id`
