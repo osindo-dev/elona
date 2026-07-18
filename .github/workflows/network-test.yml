@@ -1,0 +1,39 @@
+name: Fase 2 - IDX network reachability test (spike, manual trigger)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-idx-access:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch idx.co.id and report status
+        run: |
+          echo "Runner outbound IP:"
+          curl -s https://api.ipify.org
+          echo
+          echo "---"
+          echo "GET https://www.idx.co.id/"
+          HTTP_CODE=$(curl -s -o /tmp/idx_home.html -w "%{http_code}" \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" \
+            https://www.idx.co.id/)
+          echo "Status: $HTTP_CODE"
+          echo "--- body head ---"
+          head -c 500 /tmp/idx_home.html
+          echo
+          echo "---"
+          echo "GET https://www.idx.co.id/primary/TradingSummary/GetStockSummary?date=20260717"
+          HTTP_CODE2=$(curl -s -o /tmp/idx_api.json -w "%{http_code}" \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" \
+            -H "Accept: application/json" \
+            -H "Referer: https://www.idx.co.id/" \
+            "https://www.idx.co.id/primary/TradingSummary/GetStockSummary?date=20260717")
+          echo "Status: $HTTP_CODE2"
+          echo "--- body head ---"
+          head -c 1000 /tmp/idx_api.json
+          echo
+          if [ "$HTTP_CODE" = "200" ] && [ "$HTTP_CODE2" = "200" ]; then
+            echo "RESULT: SUCCESS - both requests got 200"
+          else
+            echo "RESULT: BLOCKED - non-200 status seen"
+          fi
