@@ -97,21 +97,68 @@ Cloudflare (cron OS, GitHub Actions scheduled workflow, dst), Worker
 elona cuma jadi consumer/serving layer baca dari D1.
 
 **Opsi B — Pakai vendor data (GOAPI.IO) untuk Stock Summary juga**
-Sama seperti keputusan Broker Summary — GOAPI.IO endpoint
-`GET /stock/idx/{symbol}` atau `GetStockSummary`-equivalent (perlu dicek
-apakah free trial/tier yang sama juga cover stock summary, kemungkinan
-besar iya karena satu paket "Stock Market IDX"). Worker Cloudflare fetch
-ke `api.goapi.io` (bukan `idx.co.id` langsung) — TIDAK diblokir karena
-domainnya beda, arsitektur "Worker cron fetch" jadi bisa dipertahankan
-tanpa perlu Opsi A. Ini kemungkinan jalan paling simpel karena udah ada
-API key trial yang aktif.
-
-**Rekomendasi teknis:** Opsi B lebih konsisten sama keputusan Broker
-Summary yang udah diambil, dan gak perlu infra tambahan (VPS/GitHub
-Actions) di luar Cloudflare — satu vendor, satu pola integrasi. Perlu
-konfirmasi Kris: apakah GOAPI cover Stock Summary di paket yang sama,
-dan keputusan final soal budget vendor (Developer vs Enterprise tier,
-lihat estimasi volume di `docs/fase-2-vendor-validation.md`).
+~~Sama seperti keputusan Broker Summary~~ — **DICEK 2026-07-18, TIDAK
+CUKUP.** Detail di bagian "Update: cek coverage GOAPI untuk Stock
+Summary" di bawah.
 
 **Keputusan arsitektur ini perlu dikonfirmasi Kris sebelum lanjut ke
 Fase 2 Task 2/3 (versi revisi).**
+
+## Update 2026-07-18: cek coverage GOAPI untuk Stock Summary
+
+Dicek langsung via curl pakai API key trial yang sama (`X-API-KEY`,
+scope Stock Market IDX). Semua endpoint harga di paket GOAPI dicek:
+
+| Endpoint | Fields yang balik |
+| :--- | :--- |
+| `GET /stock/idx/prices?symbols=BBCA` | symbol, date, open, high, low, close, volume, change, change_pct |
+| `GET /stock/idx/{symbol}/historical` | symbol, date, open, high, low, close, volume |
+| `GET /stock/idx/trending` | symbol, close, change, percent |
+| `GET /stock/idx/indicators` | OHLC + volume + puluhan indikator teknikal turunan (MA/EMA/RSI/MACD/dst) |
+| `GET /stock/idx/{symbol}` | **404 — endpoint ini SUDAH DIHAPUS** (deprecation yang disebut di docs sudah eksekusi) |
+
+**Kesimpulan: GOAPI TIDAK cover Stock Summary sesuai kebutuhan schema
+`stock_summary` kita.** Field yang HILANG di semua endpoint GOAPI di
+atas, padahal WAJIB ada di tabel `stock_summary`
+(`migrations/0001_initial_schema.sql`) dan sudah dikonfirmasi tersedia
+dari `GetStockSummary` asli IDX (Fase 0/1):
+- `value` (nilai transaksi Rupiah)
+- `frequency` (jumlah transaksi)
+- `foreign_buy` / `foreign_sell` (basis fitur Top Accumulation — INI
+  YANG PALING KRITIS, tanpa ini fitur utama v1 gak jalan)
+- `bid` / `offer` / `bid_volume` / `offer_volume` (basis Balance
+  Position Chart)
+
+Masuk akal — dokumentasi GOAPI dari awal bilang sumber data harga mereka
+"YFinance + GoogleFinance + MSN Money + MarketWatch", bukan dari IDX
+langsung (beda dari `broker_summary` yang memang hit IDX asli, makanya
+datanya cocok persis sama NeoBDM). Yahoo/Google Finance memang gak
+punya field spesifik bursa Indonesia kayak frequency atau foreign flow.
+
+**Revisi rekomendasi: Opsi B GUGUR untuk Stock Summary** (tetap valid
+khusus untuk Broker Summary, itu gak berubah). Sisa opsi:
+
+1. **Opsi A (ingestion dari luar Cloudflare)** — jadi satu-satunya jalan
+   kalau mau Stock Summary lengkap sesuai schema yang udah didesain.
+   Perlu dites juga: apakah IP non-Cloudflare (VPS/GitHub Actions/mesin
+   Kris) beneran lolos dari WAF IDX — belum ada bukti langsung, cuma
+   asumsi karena beda dari IP Cloudflare/data center yang sudah
+   terbukti diblokir.
+2. **Opsi C (baru) — vendor lain buat Stock Summary**: cek apakah
+   Sectors.app (kandidat vendor lain dari `docs/fase-2-vendor-validation.md`)
+   punya data lebih lengkap (value/frequency/foreign flow) untuk stock
+   price, bukan cuma broker summary — belum dicek sama sekali.
+3. **Opsi D — kurangi scope schema `stock_summary` v1**: kalau mau tetap
+   pakai GOAPI demi kesederhanaan arsitektur, berarti fitur yang butuh
+   `value`/`frequency`/`foreign_buy`/`foreign_sell`/bid-offer (Market
+   Summary versi lengkap, Top Accumulation, Balance Position Chart) HARUS
+   turun status juga — ini bertentangan langsung sama keputusan Fase 0
+   yang udah eksplisit bilang foreign flow itu basis utama v1, jadi opsi
+   ini kemungkinan besar gak akan diterima tapi dicatat sebagai opsi.
+
+**Rekomendasi:** Opsi A paling mungkin jadi satu-satunya jalan realistis
+kalau field foreign flow tetap wajib ada di v1 (sesuai keputusan Fase 0
+yang sudah final). Sebelum bangun infra Opsi A, sebaiknya tes dulu
+apakah IP non-Cloudflare beneran lolos WAF IDX — supaya gak bangun VPS
+ingestion di atas asumsi yang sama-sama belum terverifikasi kayak
+asumsi awal soal Cloudflare Workers.
