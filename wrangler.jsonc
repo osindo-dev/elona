@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "elona",
+  "main": "src/serving/index.ts",
+  "compatibility_date": "2025-07-18",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Placeholder bindings — resource belum diprovision di Cloudflare (fase 0).
+  // Isi id/bucket_name/database_id nyata pas provisioning beneran dilakukan.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "elona-db",
+      "database_id": "PLACEHOLDER_D1_DATABASE_ID"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "elona-bucket"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "PLACEHOLDER_KV_NAMESPACE_ID"
+    }
+  ]
+}
