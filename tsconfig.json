@@ -10,7 +10,8 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["@cloudflare/workers-types"]
+    "allowImportingTsExtensions": true,
+    "types": ["@cloudflare/workers-types", "node"]
   },
   "include": ["src", "scripts"]
 }

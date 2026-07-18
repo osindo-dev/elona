@@ -1,0 +1,59 @@
+{
+  "date": "20260717",
+  "results": [
+    {
+      "label": "base (no stock param)",
+      "url": "/primary/TradingSummary/GetBrokerSummary?length=10&start=0&date=20260717",
+      "status": 403,
+      "ok": false,
+      "verified": false,
+      "body": null,
+      "error": "HTTP 403"
+    },
+    {
+      "label": "code=BBCA",
+      "url": "/primary/TradingSummary/GetBrokerSummary?length=10&start=0&date=20260717&code=BBCA",
+      "status": 403,
+      "ok": false,
+      "verified": false,
+      "body": null,
+      "error": "HTTP 403"
+    },
+    {
+      "label": "stockcode=BBCA",
+      "url": "/primary/TradingSummary/GetBrokerSummary?length=10&start=0&date=20260717&stockcode=BBCA",
+      "status": 403,
+      "ok": false,
+      "verified": false,
+      "body": null,
+      "error": "HTTP 403"
+    },
+    {
+      "label": "Code=BBCA (capitalized)",
+      "url": "/primary/TradingSummary/GetBrokerSummary?length=10&start=0&date=20260717&Code=BBCA",
+      "status": 403,
+      "ok": false,
+      "verified": false,
+      "body": null,
+      "error": "HTTP 403"
+    },
+    {
+      "label": "GetBrokerSummaryChart",
+      "url": "/primary/TradingSummary/GetBrokerSummaryChart?length=10&start=0&date=20260717&stockcode=BBCA",
+      "status": 403,
+      "ok": false,
+      "verified": false,
+      "body": null,
+      "error": "HTTP 403"
+    },
+    {
+      "label": "StockData/GetBrokerSummary",
+      "url": "/primary/StockData/GetBrokerSummary?stockcode=BBCA&date=20260717",
+      "status": 403,
+      "ok": false,
+      "verified": false,
+      "body": null,
+      "error": "HTTP 403"
+    }
+  ]
+}
