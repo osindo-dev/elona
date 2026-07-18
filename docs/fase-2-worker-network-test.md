@@ -162,3 +162,44 @@ yang sudah final). Sebelum bangun infra Opsi A, sebaiknya tes dulu
 apakah IP non-Cloudflare beneran lolos WAF IDX — supaya gak bangun VPS
 ingestion di atas asumsi yang sama-sama belum terverifikasi kayak
 asumsi awal soal Cloudflare Workers.
+
+## Update 2026-07-18: tes Opsi A dari GitHub Actions (IP Azure, bukan Cloudflare)
+
+Dibuat workflow one-off (`.github/workflows/network-test.yml`, manual
+trigger via `workflow_dispatch`) yang fetch `idx.co.id` dari GitHub
+Actions runner — IP range Azure (`westus2`), sama sekali beda dari
+Cloudflare maupun IP sandbox ini.
+
+**Hasil run** (https://github.com/osindo-dev/elona/actions/runs/29657291547):
+- Runner outbound IP: `20.115.146.225`
+- `GET https://www.idx.co.id/` → **403**, body "Attention Required! |
+  Cloudflare" — sama persis
+- `GET .../GetStockSummary?date=20260717` → **403**, sama
+
+**Kesimpulan: GitHub Actions (Azure datacenter IP) JUGA diblokir.** Tiga
+dari tiga jaringan yang dites (sandbox ini, Cloudflare Workers, GitHub
+Actions/Azure) semuanya kena block yang sama persis. Ini pola kuat:
+WAF IDX kemungkinan besar blokir IP range cloud/datacenter secara luas
+(bukan cuma Cloudflare spesifik) — AWS/GCP/Azure/VPS generik kemungkinan
+besar bernasib sama, gak cuma GitHub Actions.
+
+**Sesuai konteks yang Kris kasih di prompt Fase 2** ("Live fetch HANYA
+berhasil dari browser session asli milik Kris") — satu-satunya jaringan
+yang terbukti BISA akses IDX sejauh ini adalah **koneksi Kris sendiri**
+(residential/ISP biasa, bukan cloud/datacenter).
+
+**Revisi Opsi A:** bukan sembarang "compute di luar Cloudflare" — harus
+spesifik jalan dari jaringan non-datacenter (mesin Kris langsung, atau
+kalau mau server 24/7: VPS residential-IP provider khusus, yang beda
+dari VPS cloud biasa dan biasanya lebih mahal/niche). Arsitektur paling
+realistis: script kecil yang jalan di mesin Kris (cron lokal / dijalanin
+manual harian), fetch IDX, push hasil ke D1 lewat Cloudflare REST API
+(D1 punya HTTP API terpisah dari binding Worker, jadi bisa dipanggil
+dari luar Cloudflare pakai API token). Worker `elona` tetap cuma jadi
+serving layer yang baca dari D1 — gak perlu diubah.
+
+**Ini keputusan yang perlu dikonfirmasi Kris**: apakah oke ingestion
+bergantung pada mesin Kris jalan tiap hari bursa (bukan otomatis di
+cloud), atau mau invest ke residential-IP VPS berbayar, atau masih mau
+coba Opsi C (cek Sectors.app) sebagai alternatif data source dulu
+sebelum commit ke arsitektur ini.
