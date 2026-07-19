@@ -15,6 +15,11 @@ import { handleComingSoon } from "./handlers/placeholder.ts";
 // because it's already decided v2-placeholder elsewhere in the docs and
 // the task asks to prep contracts for "semua fitur v2" - flagged as an
 // assumption in the Fase 4 report.
+//
+// Balance Position Chart added 2026-07-19 per docs/addendum-arsitektur-2026-07-19.md
+// section C: downgraded from v1 to v2-placeholder (needs bid/offer order
+// book, not available from GOAPI/Sectors.app). Was previously unrouted
+// entirely (fell through to generic 404) - flagged during Fase 3 audit.
 const V2_PLACEHOLDER_PATHS = new Set([
   "/api/screening/scripless",
   "/api/screening/nominee-indication",
@@ -24,6 +29,7 @@ const V2_PLACEHOLDER_PATHS = new Set([
   "/api/analysis/broker-summary",
   "/api/analysis/done-detail",
   "/api/analysis/inventory-chart",
+  "/api/analysis/balance-position",
 ]);
 
 export async function routeApiRequest(request: Request, env: Env): Promise<Response | null> {
