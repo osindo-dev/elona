@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>elona — Bandarmology IDX</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>elona</h1>
+    <p class="subtitle">Bandarmology IDX — dashboard minimal (Fase 4)</p>
+  </header>
+
+  <main class="grid" id="dashboard-grid">
+    <!-- v1 cards -->
+    <section class="card" id="card-market-summary" data-card>
+      <header class="card-header">
+        <h2>Market Summary</h2>
+        <span class="staleness-badge" data-staleness>unknown</span>
+      </header>
+      <p class="card-meta">last_updated: <span data-last-updated>—</span></p>
+      <div class="card-body" data-body>
+        <p class="loading">Memuat...</p>
+      </div>
+    </section>
+
+    <section class="card" id="card-top-accumulation-foreign" data-card>
+      <header class="card-header">
+        <h2>Top Accumulation Foreign</h2>
+        <span class="staleness-badge" data-staleness>unknown</span>
+      </header>
+      <p class="card-meta">last_updated: <span data-last-updated>—</span></p>
+      <p class="vendor-disclosure" data-vendor-disclosure hidden></p>
+      <div class="card-body" data-body>
+        <p class="loading">Memuat...</p>
+      </div>
+    </section>
+
+    <!-- v2 placeholder cards -->
+    <section class="card card-placeholder" data-placeholder-card="Scripless Bertambah/Berkurang">
+      <header class="card-header">
+        <h2>Scripless Bertambah/Berkurang</h2>
+        <span class="coming-soon-badge">coming soon</span>
+      </header>
+      <p class="card-body-placeholder">Fitur belum tersedia — v2.</p>
+    </section>
+
+    <section class="card card-placeholder" data-placeholder-card="Indikasi Nominee">
+      <header class="card-header">
+        <h2>Indikasi Nominee</h2>
+        <span class="coming-soon-badge">coming soon</span>
+      </header>
+      <p class="card-body-placeholder">Fitur belum tersedia — v2.</p>
+    </section>
+
+    <section class="card card-placeholder" data-placeholder-card="Done Detail Visualization">
+      <header class="card-header">
+        <h2>Done Detail Visualization</h2>
+        <span class="coming-soon-badge">coming soon</span>
+      </header>
+      <p class="card-body-placeholder">Fitur belum tersedia — v2.</p>
+    </section>
+
+    <section class="card card-placeholder" data-placeholder-card="Bandarmology / Broker Stalker / Broker Summary">
+      <header class="card-header">
+        <h2>Bandarmology / Broker Stalker / Broker Summary</h2>
+        <span class="coming-soon-badge">coming soon</span>
+      </header>
+      <p class="card-body-placeholder">Fitur belum tersedia — v2.</p>
+    </section>
+
+    <section class="card card-placeholder" data-placeholder-card="Potensi Buyback Institusi">
+      <header class="card-header">
+        <h2>Potensi Buyback Institusi</h2>
+        <span class="coming-soon-badge">coming soon</span>
+      </header>
+      <p class="card-body-placeholder">Fitur belum tersedia — v2.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Scope: 10 saham (Fase 2/3 subset). Data source: GOAPI.IO (OHLC+volume), Sectors.app (foreign flow).</p>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -2,12 +2,18 @@ import type { Env } from "../shared/types.ts";
 import { precomputeRollingAggregatesForDate } from "../compute/rolling-aggregation-job.ts";
 import { ingestStockSummaryForUniverse } from "../ingestion/stock-summary-ingestion-job.ts";
 import { STOCK_UNIVERSE_SUBSET } from "../ingestion/stock-universe.ts";
+import { routeApiRequest } from "./router.ts";
 
 const INGESTION_CRON = "0 10 * * 1-5";
 const COMPUTE_CRON = "0 11 * * 1-5";
 
 export default {
-  async fetch(): Promise<Response> {
+  // Fase 4: dispatches /api/* to the serving-layer router; everything else
+  // keeps the Fase 0-3 placeholder response. scheduled() below (ingestion +
+  // compute precompute) is untouched - Fase 4 is serving-layer only.
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const apiResponse = await routeApiRequest(request, env);
+    if (apiResponse !== null) return apiResponse;
     return new Response("elona: ok", { status: 200 });
   },
 
