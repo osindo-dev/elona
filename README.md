@@ -1,7 +1,6 @@
 # elona
 
-Platform bandarmology IDX (top accumulation, screening, analysis) — mirip
-terminalb.id. Arsitektur target: Cloudflare Workers + D1 + R2 + KV, deploy
+Platform bandarmology IDX (top accumulation, screening, analysis) — Arsitektur target: Cloudflare Workers + D1 + R2 + KV, deploy
 dari GitHub, auth Google OAuth.
 
 ## Status: Fase 0 (validasi data source)
