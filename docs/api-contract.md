@@ -232,24 +232,48 @@ bukan masalah kontrak, dicatat sebagai dependency ke Fase 2.
 
 ### GET /api/analysis/balance-position
 
+**Revisi 2026-07-18**: kontrak awal endpoint ini salah tafsir — "Balance
+Position Chart" bukan order book bid/offer, tapi komposisi kepemilikan
+per kategori investor (data bulanan, sumber KSEI). Lihat
+`docs/schema-diagram.md` bagian `ownership_composition` untuk detail +
+open item soal sumber data yang belum terverifikasi.
+
 ```
-GET /api/analysis/balance-position?stock_code=BBCA&date=YYYYMMDD
+GET /api/analysis/balance-position?stock_code=BBCA&period=2026-06
 ```
+
+- `period` (optional, format `YYYY-MM`, default: periode terbaru yang
+  ke-sync)
 
 Response:
 ```json
 {
   "stock_code": "BBCA",
-  "date": "20260717",
+  "period": "2026-06",
   "last_updated": "2026-07-18T02:15:00Z",
   "staleness_flag": "fresh",
-  "data": { "bid": 9870, "bid_volume": 45000, "offer": 9875, "offer_volume": 32000, "imbalance_ratio": 1.41 }
+  "data": {
+    "pct_institution": 63.7,
+    "pct_retail": 20.1,
+    "pct_foreign": 42.5,
+    "free_float_pct": 42.5,
+    "scripless_pct": 42.6,
+    "source_period_date": "2026-06-30"
+  }
 }
 ```
 
-Sumber: `stock_summary.bid/bid_volume/offer/offer_volume` untuk
-`stock_code` + `date`. `imbalance_ratio` = `bid_volume / offer_volume`
-(dihitung di serving layer, bukan disimpan).
+Sumber: tabel `ownership_composition`, satu row per `(stock_code,
+period)`. `staleness_flag` di sini beda makna dari endpoint harian
+lain — karena datanya bulanan, "fresh" berarti periode terbaru yang
+tersedia sudah ke-sync, BUKAN "hari ini sudah update". Threshold pasti
+ditentukan pas ingestion job dibangun (Fase 2), sama kayak endpoint
+lain.
+
+**CATAT**: response shape di atas berdasarkan schema
+`ownership_composition` yang field-nya sendiri masih placeholder
+(diambil dari legend UI kompetitor, belum dari sumber data asli) —
+kontrak ini kemungkinan besar direvisi lagi begitu sumber KSEI dicek.
 
 ### GET /api/analysis/broker-summary — **v2-placeholder**
 

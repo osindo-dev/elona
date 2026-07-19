@@ -4,8 +4,13 @@
 -- docs/fase-0-findings.md / docs/fase-0-findings-v2.md for why broker
 -- data is market-wide aggregate only (no per-stock breakdown available).
 
--- stock_summary: OHLC + volume/value/frequency + foreign flow + order book,
+-- stock_summary: OHLC + volume/value/frequency + foreign flow,
 -- one row per (date, stock_code). Source: IDX GetStockSummary.
+-- NOTE: bid/offer (order book) columns intentionally NOT included here.
+-- Originally planned for Balance Position Chart, but corrected 2026-07-18
+-- (docs/neobdm-competitor-research.md) - that feature is ownership
+-- composition (KSEI-sourced, monthly), not a live order book. See
+-- ownership_composition table below.
 CREATE TABLE stock_summary (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TEXT NOT NULL,                    -- YYYYMMDD
@@ -24,11 +29,6 @@ CREATE TABLE stock_summary (
   volume INTEGER,
   value INTEGER,
   frequency INTEGER,
-
-  bid REAL,
-  bid_volume INTEGER,
-  offer REAL,
-  offer_volume INTEGER,
 
   -- Foreign investor flow, per stock, per day. Verified structured field
   -- from GetStockSummary (fase 0). This is the data basis for "Top
@@ -106,3 +106,38 @@ CREATE TABLE sector_mapping (
 );
 
 CREATE INDEX idx_sector_mapping_sector ON sector_mapping (sector);
+
+-- ownership_composition: basis for "Balance Position Chart" (corrected
+-- meaning, see docs/neobdm-competitor-research.md 2026-07-18 update).
+-- This is investor-category ownership breakdown per stock, snapshotted
+-- monthly (KSEI cadence, e.g. "Data per 30 jun 2026" as seen in NeoBDM),
+-- NOT a daily/real-time order book.
+--
+-- OPEN ITEM: exact data source and access method for this table is
+-- UNVERIFIED. NeoBDM displays it from what looks like an official KSEI
+-- XLSX export, but we have not confirmed where/how to obtain that file
+-- ourselves, its real column names, or whether it's freely accessible.
+-- Column names below are inferred from NeoBDM's UI legend (Foreign/Local
+-- x Bank/Insurance/PensionFund/Individual/Corporate/MutualFund/
+-- Foundation/Other) - NOT verified against an actual source response.
+-- Treat as a placeholder shape to be revised once the source is checked,
+-- same discipline as the rest of Fase 0/1/2 findings (don't ship
+-- unverified structure as if it were confirmed).
+CREATE TABLE ownership_composition (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  stock_code TEXT NOT NULL,
+  period TEXT NOT NULL,                  -- YYYY-MM, monthly snapshot
+
+  pct_institution REAL,
+  pct_retail REAL,
+  pct_foreign REAL,
+  free_float_pct REAL,
+  scripless_pct REAL,
+
+  source_period_date TEXT,               -- exact date the source snapshot covers, e.g. "2026-06-30"
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE (stock_code, period)
+);
+
+CREATE INDEX idx_ownership_composition_code_period ON ownership_composition (stock_code, period);
