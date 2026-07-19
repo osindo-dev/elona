@@ -23,6 +23,16 @@
   unverified-nya secara eksplisit di kode (misal placeholder/flag
   eksplisit), bukan pemakaian langsung tanpa disclosure.
 
+## Catatan verifikasi
+
+Approval ini dicatat berdasarkan konfirmasi Kris lewat sesi chat Claude
+(claude.ai), BUKAN lewat GitHub PR review atau kanal independen lain.
+Guard otomatis sempat menolak commit ini karena satu-satunya bukti
+approval adalah prompt chat itu sendiri (self-attested, tanpa verifikasi
+independen) — dilanjutkan atas override eksplisit dari Kris di sesi yang
+sama. Dicatat di sini agar transparan, bukan disamakan dengan approval
+formal terverifikasi.
+
 ## Referensi
 
 - `docs/investigasi-scope-creep-2026-07-19.md`
