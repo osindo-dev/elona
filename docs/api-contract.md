@@ -89,12 +89,20 @@ Response: { "status": "coming_soon" }
 
 ### GET /api/screening/market-summary
 
+**Catatan 2026-07-18**: `value` dan `frequency` DISKIP di v1 (keputusan
+Kris) — GOAPI (sumber `stock_summary` di v1) gak punya field ini. Kedua
+field tetap ada di response (biar kontrak stabil kalau nanti diisi),
+tapi nilainya `null` dan `sort=value`/`sort=frequency` gak fungsional
+sampai sumbernya ada.
+
 ```
-GET /api/screening/market-summary?date=YYYYMMDD&sort=value&limit=50&offset=0
+GET /api/screening/market-summary?date=YYYYMMDD&sort=volume&limit=50&offset=0
 ```
 
 - `date` (optional, default hari bursa terakhir)
-- `sort` (optional, default `value`): `value` | `volume` | `frequency` | `change_percent`
+- `sort` (optional, default `volume`): `volume` | `change_percent` |
+  `value` | `frequency` (dua terakhir gak fungsional di v1, lihat catatan
+  di atas — request tetap valid, hasil urutannya null semua kalau dipilih)
 - `limit` (optional, default 50, max 200), `offset` (optional, default 0)
 
 Response:
@@ -105,7 +113,7 @@ Response:
   "staleness_flag": "fresh",
   "pagination": { "limit": 50, "offset": 0, "total": 900 },
   "data": [
-    { "stock_code": "BBCA", "stock_name": "Bank Central Asia Tbk", "open": 9800, "high": 9900, "low": 9750, "close": 9875, "change": 75, "change_percent": 0.77, "volume": 12345600, "value": 121500000000, "frequency": 4210 }
+    { "stock_code": "BBCA", "stock_name": "Bank Central Asia Tbk", "open": 9800, "high": 9900, "low": 9750, "close": 9875, "change": 75, "change_percent": 0.77, "volume": 12345600, "value": null, "frequency": null }
   ]
 }
 ```
@@ -113,6 +121,10 @@ Response:
 Sumber: `stock_summary`, satu row per stock per `date`.
 
 ### GET /api/screening/sector-activity
+
+**Catatan 2026-07-18**: `total_value` diskip di v1 (sama alasan kayak
+Market Summary — `value` gak ada dari GOAPI). `total_volume` jadi metrik
+utama buat v1, bukan `total_value` seperti desain awal.
 
 ```
 GET /api/screening/sector-activity?date=YYYYMMDD
@@ -125,7 +137,7 @@ Response:
   "last_updated": "2026-07-18T02:15:00Z",
   "staleness_flag": "fresh",
   "data": [
-    { "sector": "Financials", "stock_count": 95, "total_value": 4500000000000, "total_volume": 890000000, "avg_change_percent": 1.2 }
+    { "sector": "Financials", "stock_count": 95, "total_value": null, "total_volume": 890000000, "avg_change_percent": 1.2 }
   ]
 }
 ```
@@ -135,11 +147,17 @@ Sumber: `stock_summary` JOIN `sector_mapping` ON `stock_code`, agregat
 
 ### GET /api/screening/rotation-chart
 
+**Catatan 2026-07-18**: default `metric` diubah ke `volume` (dari `value`
+sebelumnya) — `value` gak diisi di v1, sama alasan kayak Market
+Summary/Sector Activity. `metric=value` tetap valid dipanggil tapi
+hasilnya null semua sampai sumbernya ada.
+
 ```
-GET /api/screening/rotation-chart?date_from=YYYYMMDD&date_to=YYYYMMDD&metric=value
+GET /api/screening/rotation-chart?date_from=YYYYMMDD&date_to=YYYYMMDD&metric=volume
 ```
 
-- `metric` (optional, default `value`): `value` | `volume`
+- `metric` (optional, default `volume`): `volume` | `value` (`value` gak
+  fungsional di v1, lihat catatan di atas)
 
 Response:
 ```json
@@ -149,7 +167,7 @@ Response:
   "last_updated": "2026-07-18T02:15:00Z",
   "staleness_flag": "fresh",
   "data": [
-    { "sector": "Financials", "series": [{ "date": "20260701", "value": 4100000000000 }, { "date": "20260702", "value": 4200000000000 }] }
+    { "sector": "Financials", "series": [{ "date": "20260701", "value": 210500000 }, { "date": "20260702", "value": 198300000 }] }
   ]
 }
 ```

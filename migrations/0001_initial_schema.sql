@@ -27,8 +27,8 @@ CREATE TABLE stock_summary (
   first_trade REAL,
 
   volume INTEGER,
-  value INTEGER,
-  frequency INTEGER,
+  value INTEGER,                         -- DEFERRED 2026-07-18: not populated by v1 ingestion (GOAPI has no value field). Nullable, kept for when a source is found.
+  frequency INTEGER,                     -- DEFERRED 2026-07-18: same as value, GOAPI has no frequency field.
 
   -- Foreign investor flow, per stock, per day. Verified structured field
   -- from GetStockSummary (fase 0). This is the data basis for "Top

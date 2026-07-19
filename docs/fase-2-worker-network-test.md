@@ -1,9 +1,19 @@
 # Fase 2, Task 1 — Bisakah Cloudflare Workers Production Akses idx.co.id?
 
-**Jawaban: TIDAK BISA.** Cloudflare Workers diblokir IDX sama persis
-kayak environment sandbox di Fase 0 (403, Cloudflare JS challenge "Just
-a moment..."). Ini bukan masalah IP data center sandbox — masalahnya di
-level jaringan Cloudflare Workers itu sendiri.
+**RESOLVED 2026-07-18 — lihat bagian paling bawah dokumen ini dulu**
+kalau cuma mau tau kesimpulan akhir. Ringkas: `idx.co.id` langsung
+TETAP diblokir dari semua jaringan yang dites (di bawah), TAPI
+arsitektur akhir gak lagi butuh akses langsung ke `idx.co.id` sama
+sekali — Worker cukup manggil `api.goapi.io` (gak diblokir), karena
+Kris putuskan skip field `value`/`frequency` yang jadi alasan awal
+kenapa Opsi A (ingestion dari jaringan Kris) kelihatannya perlu.
+
+## (Riwayat penyelidikan network, sudah tidak jadi blocker — dibiarkan sebagai catatan)
+
+Cloudflare Workers diblokir IDX sama persis kayak environment sandbox
+di Fase 0 (403, Cloudflare JS challenge "Just a moment..."). Ini bukan
+masalah IP data center sandbox — masalahnya di level jaringan Cloudflare
+Workers itu sendiri.
 
 ## Setup test
 
@@ -229,3 +239,32 @@ mereka (sama pola kayak validasi GOAPI sebelumnya) — tapi ini tetap
 cuma jalur "lihat dari mana data mereka", bukan jaminan API itu publik/
 bisa dipakai elona (kemungkinan besar API internal sekuritas juga
 butuh auth per-user, gak bisa dipakai buat ingestion produk lain).
+
+## RESOLUSI FINAL 2026-07-18: Opsi A tidak diperlukan lagi buat `stock_summary`
+
+Kris putuskan: **skip `value` dan `frequency`** di v1 (nilainya `null`,
+kolom tetap ada di schema buat masa depan — lihat
+`docs/schema-diagram.md` dan `docs/api-contract.md` yang udah direvisi).
+
+Dampak langsung: dua field itu adalah SATU-SATUNYA alasan kenapa Opsi A
+(ingestion dari jaringan non-datacenter Kris) kelihatannya wajib untuk
+`stock_summary` — semua field lain udah kecover:
+
+| Field `stock_summary` | Sumber v1 |
+| :--- | :--- |
+| open/high/low/close, volume, change | GOAPI `GET /stock/idx/prices` atau `/historical` |
+| foreign_buy/foreign_sell/foreign_net | Diturunkan dari agregasi GOAPI `broker_summary` (filter `investor=FOREIGN`, jumlahkan `bval`/`sval` lintas broker per stock per date) — data ini SUDAH kevalidasi (`docs/fase-2-vendor-validation.md`), tinggal logic agregasi di compute/ingestion layer |
+| bid/offer | Dihapus dari schema (salah tafsir fitur, lihat `docs/neobdm-competitor-research.md`) |
+| value, frequency | **Diskip**, null, gak diisi v1 |
+
+**Kesimpulan arsitektur Fase 2**: Worker Cloudflare cron TETAP jadi
+arsitektur utama — cukup fetch ke `api.goapi.io` (domain ini TIDAK
+diblokir, beda dari `idx.co.id`). Gak perlu VPS/mesin Kris/residential
+IP buat `stock_summary`. Opsi A cuma relevan lagi kalau nanti `value`/
+`frequency` mau diisi (via sumber lain) atau buat
+`ownership_composition` (masih belum jelas sumbernya, lihat
+`docs/schema-diagram.md`).
+
+**Task 2 & 3 (ingestion + normalization job) dari prompt Fase 2 SEKARANG
+BISA dikerjakan** — dengan revisi: sumber GOAPI, bukan `idx.co.id`
+langsung. Menunggu instruksi Kris buat lanjut.

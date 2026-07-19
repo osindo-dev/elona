@@ -164,13 +164,17 @@ turun ke v2-placeholder, sejajar Bandarmology/Broker Stalker/Broker Summary.
   lihat catatan di section tabel itu di atas. Blocker buat Balance
   Position Chart jadi v1 beneran (schema udah ada, tapi ingestion-nya
   belum, dan sumbernya sendiri belum diverifikasi).
-- **`stock_summary.frequency`**: masih gap — dikonfirmasi TIDAK ada di
-  GOAPI maupun Sectors.app (`docs/fase-2-vendor-validation.md`). Dengan
-  bid/offer udah dihapus dari tabel ini, `frequency` sekarang jadi
-  satu-satunya field `stock_summary` yang masih butuh Opsi A (ingestion
-  dari jaringan non-datacenter, lihat `docs/fase-2-worker-network-test.md`)
-  atau turun status kalau Kris terima kompromi (Market Summary tanpa
-  kolom frequency).
+- **`stock_summary.value` dan `stock_summary.frequency`**: **DISKIP 2026-07-18**
+  (keputusan Kris) — kolom tetap ada di schema (nullable, gak dihapus,
+  karena dua-duanya field asli yang dikonfirmasi ada di IDX GetStockSummary
+  betulan, Fase 0), tapi TIDAK diisi oleh ingestion v1 karena GOAPI gak
+  punya field ini. Konsekuensi: sort/filter by `value`/`frequency` di
+  Market Summary (`docs/api-contract.md`) gak fungsional di v1, kolomnya
+  bakal null. Dengan bid/offer juga udah dihapus, ini ngebuka jalan buat
+  `stock_summary` full disuplai dari GOAPI lewat Cloudflare Worker cron —
+  **Opsi A (ingestion dari jaringan non-datacenter Kris) TIDAK lagi
+  diperlukan untuk `stock_summary`**, lihat update di
+  `docs/fase-2-worker-network-test.md`.
 - **Company announcement / buyback**: lihat `docs/buyback-verification.md`
   — kesimpulan: data TIDAK terstruktur, gak ada tabel `company_announcement`
   di migration ini.
