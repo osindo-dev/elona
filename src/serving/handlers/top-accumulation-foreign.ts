@@ -28,6 +28,7 @@ export async function handleTopAccumulationForeign(env: Env, url: URL): Promise<
       last_updated: null,
       staleness_flag: "unknown",
       data_source: SECTORS_APP_DISCLOSURE,
+      data_notes: FOREIGN_NET_DATA_NOTES,
       data: [],
     });
   }
@@ -50,6 +51,7 @@ export async function handleTopAccumulationForeign(env: Env, url: URL): Promise<
       last_updated: null,
       staleness_flag: "unknown",
       data_source: SECTORS_APP_DISCLOSURE,
+      data_notes: FOREIGN_NET_DATA_NOTES,
       data: [],
     });
   }
@@ -61,10 +63,14 @@ export async function handleTopAccumulationForeign(env: Env, url: URL): Promise<
     last_updated: lastUpdated,
     staleness_flag: computeStalenessFlag(date),
     data_source: SECTORS_APP_DISCLOSURE,
+    data_notes: FOREIGN_NET_DATA_NOTES,
     data: results.map((r, i) => ({
       stock_code: r.stock_code,
       stock_name: r.stock_name,
       net: r.foreign_net,
+      // Per-item, not just top-level data_notes, so a future mixed-source
+      // response can't accidentally imply this row is verified too.
+      foreign_net_verification: FOREIGN_NET_VERIFICATION,
       rank: i + 1,
     })),
   });
@@ -89,6 +95,19 @@ const SECTORS_APP_DISCLOSURE = {
   vendor: "Sectors.app",
   field: "net_foreign_inflow",
   note: "Third-party vendor data. Legal due diligence not yet passed - see docs/goapi-due-diligence.md and docs/konsep-arsitektur-bandarmology-idx.md section 3.",
+};
+
+// Constant, not conditional - flip only when Sectors.app DD actually clears
+// (docs/fase3-approval.md prasyarat terbuka). No per-row logic here on
+// purpose: a conditional could silently drift out of sync with the real
+// DD status.
+const FOREIGN_NET_VERIFICATION = "unverified" as const;
+
+const FOREIGN_NET_DATA_NOTES = {
+  foreign_net_verification: FOREIGN_NET_VERIFICATION,
+  foreign_net_source: "Sectors.app",
+  reason:
+    "Vendor legal due diligence not yet cleared; field accuracy not independently verified against live calls",
 };
 
 async function latestDate(env: Env): Promise<string | null> {

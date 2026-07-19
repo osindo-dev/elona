@@ -47,6 +47,10 @@ export async function routeApiRequest(request: Request, env: Env): Promise<Respo
   switch (url.pathname) {
     case "/api/screening/market-summary":
       return handleMarketSummary(env, url);
+    // RE-ENABLED 2026-07-19: Fase 4 approved by Kris, foreign_net served
+    // with unverified flag - lihat docs/fase3-approval.md dan handler
+    // untuk detail (handlers/top-accumulation-foreign.ts: data_notes +
+    // foreign_net_verification per item).
     case "/api/dashboard/top-accumulation-foreign":
       return handleTopAccumulationForeign(env, url);
     case "/api/dashboard/top-accumulation":
