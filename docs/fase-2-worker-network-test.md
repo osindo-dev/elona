@@ -203,3 +203,29 @@ bergantung pada mesin Kris jalan tiap hari bursa (bukan otomatis di
 cloud), atau mau invest ke residential-IP VPS berbayar, atau masih mau
 coba Opsi C (cek Sectors.app) sebagai alternatif data source dulu
 sebelum commit ke arsitektur ini.
+
+## Update 2026-07-18: Opsi E dicoba — web sekuritas lokal sebagai jalur alternatif (belum konklusif, dihentikan sesuai instruksi)
+
+Ide: web trader sekuritas lokal (Stockbit, dst) yang punya fitur chart
+lengkap mungkin expose data lebih detail (frequency, bid/offer) lewat
+API mereka sendiri (bukan `idx.co.id` langsung), yang mungkin gak kena
+WAF block yang sama.
+
+**Dicoba**: buka `stockbit.com/symbol/BBCA` tanpa login (gak ada sesi
+sekuritas Kris yang aktif di browser ini). Halaman publik cuma nampilin
+harga + feed komunitas — gak ada frequency/value/bid-offer di sini. Tab
+"Key Stats" dkk kemungkinan butuh login buat data lebih detail.
+
+**Dihentikan di sini** — masuk akun sekuritas manapun butuh password,
+dan itu di luar batas yang boleh saya lakukan (gak akan pernah masukin
+password akun siapapun, termasuk Kris, ke form manapun). Sesuai arahan
+"kalau gak tersedia, skip, jangan dipaksakan" — gak lanjut coba platform
+sekuritas lain (Ajaib/IPOT/dst), semuanya kemungkinan besar sama-sama
+butuh login buat data granular.
+
+**Kalau mau lanjutin jalur ini**: Kris perlu login sendiri ke sekuritas
+pilihan di browser, baru saya bisa lanjut cek network request/API
+mereka (sama pola kayak validasi GOAPI sebelumnya) — tapi ini tetap
+cuma jalur "lihat dari mana data mereka", bukan jaminan API itu publik/
+bisa dipakai elona (kemungkinan besar API internal sekuritas juga
+butuh auth per-user, gak bisa dipakai buat ingestion produk lain).
