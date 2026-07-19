@@ -25,5 +25,15 @@
       "binding": "CACHE",
       "id": "PLACEHOLDER_KV_NAMESPACE_ID"
     }
-  ]
+  ],
+
+  // Fase 2 ingestion (GOAPI + Sectors.app -> stock_summary) runs first,
+  // then Fase 3 precompute (rolling window aggregation) reads what
+  // ingestion just wrote. Both UTC, IDX-close-adjacent (WIB = UTC+7).
+  "triggers": {
+    "crons": [
+      "0 10 * * 1-5", // ingestion, ~17:00 WIB
+      "0 11 * * 1-5" // compute precompute, ~18:00 WIB - docs/konsep-arsitektur-bandarmology-idx.md section 4.3
+    ]
+  }
 }
