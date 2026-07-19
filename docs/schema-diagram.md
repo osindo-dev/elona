@@ -28,9 +28,7 @@ erDiagram
         real close_price
         integer volume
         integer value
-        integer foreign_buy
-        integer foreign_sell
-        integer foreign_net "generated: buy - sell"
+        integer foreign_net "Rupiah, from Sectors.app net_foreign_inflow (revisi 2026-07-19)"
     }
 
     broker_summary {
@@ -85,17 +83,23 @@ disengaja untuk fase ini; revisit kalau muncul masalah data-integrity nyata.
 ### `stock_summary`
 Sumber tunggal buat hampir semua fitur v1: Market Summary, Transaction
 Chart, Seasonality Table, DAN — paling penting — Top Accumulation by
-Investor Type / Top Accumulation Foreign, karena field
-`foreign_buy`/`foreign_sell`/`foreign_net` di sini **granular per saham**
-(diverifikasi Fase 0, ini pengganti Bandarmology). Balance Position
+Investor Type / Top Accumulation Foreign, karena field `foreign_net` di
+sini **granular per saham** (pengganti Bandarmology). Balance Position
 Chart TIDAK lagi pakai tabel ini — lihat `ownership_composition` di
 bawah.
 
-`foreign_net` pakai `GENERATED ALWAYS AS ... STORED` (bukan dihitung di
-app layer) supaya query "top net foreign buy hari ini" bisa langsung
-`ORDER BY foreign_net DESC` tanpa compute ekstra tiap request — penting
-buat D1 yang billing-nya rows-read based, generated+stored column gak
-nambah cost dibanding kolom biasa.
+**Revisi 2026-07-19** (`docs/fase-2-vendor-validation.md` Opsi C):
+desain awal `foreign_buy`/`foreign_sell` + `foreign_net` (generated,
+`buy - sell`) asumsi sumbernya IDX `GetStockSummary` langsung (Fase 0,
+lot-denominated, split buy/sell). Sumber v1 yang benar-benar dipakai
+ternyata vendor pihak ketiga (Sectors.app `GET /v2/foreign-flow/{symbol}/`),
+yang cuma expose `net_foreign_inflow` — satu angka Rupiah, BUKAN lot,
+BUKAN split buy/sell. `foreign_buy`/`foreign_sell` DIHAPUS dari tabel
+(gak ada sumber v1 yang bisa mengisinya), `foreign_net` jadi kolom
+nullable biasa (bukan lagi `GENERATED`), diisi langsung dari
+`net_foreign_inflow`. Lihat `docs/api-contract.md` endpoint Top
+Accumulation untuk konsekuensi ke response API (`domestic` gugur,
+`buy`/`sell` gak ada di response).
 
 ### `broker_summary`
 **AGGREGATE ONLY** — market-wide total per broker per hari, BUKAN

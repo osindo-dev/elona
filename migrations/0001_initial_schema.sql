@@ -30,12 +30,19 @@ CREATE TABLE stock_summary (
   value INTEGER,                         -- DEFERRED 2026-07-18: not populated by v1 ingestion (GOAPI has no value field). Nullable, kept for when a source is found.
   frequency INTEGER,                     -- DEFERRED 2026-07-18: same as value, GOAPI has no frequency field.
 
-  -- Foreign investor flow, per stock, per day. Verified structured field
-  -- from GetStockSummary (fase 0). This is the data basis for "Top
+  -- Foreign investor flow, per stock, per day. Basis for "Top
   -- Accumulation by Investor Type" and "Top Accumulation Foreign".
-  foreign_buy INTEGER NOT NULL DEFAULT 0,
-  foreign_sell INTEGER NOT NULL DEFAULT 0,
-  foreign_net INTEGER GENERATED ALWAYS AS (foreign_buy - foreign_sell) STORED,
+  -- REVISED 2026-07-19 (docs/fase-2-vendor-validation.md, Opsi C):
+  -- original design assumed foreign_buy/foreign_sell split lot from IDX
+  -- GetStockSummary directly (fase 0). Actual v1 vendor source
+  -- (Sectors.app GET /v2/foreign-flow/{symbol}/) only returns
+  -- net_foreign_inflow - a single Rupiah aggregate, NOT split
+  -- buy/sell, NOT lot-denominated. foreign_buy/foreign_sell dropped
+  -- since there's no v1 source to populate them; foreign_net kept as a
+  -- plain nullable column (was previously GENERATED from buy - sell).
+  -- See docs/api-contract.md Top Accumulation endpoint for the
+  -- consequence on API response shape.
+  foreign_net INTEGER,                   -- Rupiah, from Sectors.app net_foreign_inflow. Nullable: not backfilled until Fase 2 ingestion runs.
 
   listed_shares INTEGER,
   tradable_shares INTEGER,

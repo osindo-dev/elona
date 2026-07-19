@@ -31,11 +31,28 @@ Endpoint v2-placeholder TIDAK perlu field ini — responsenya selalu persis
 
 ### GET /api/dashboard/top-accumulation
 
+**Revisi 2026-07-19** (`docs/fase-2-vendor-validation.md`): sumber data
+untuk `type=foreign` SEKARANG vendor pihak ketiga (Sectors.app
+`GET /v2/foreign-flow/{symbol}/`), BUKAN IDX langsung seperti desain
+awal (`GetStockSummary`). Konsekuensi: Sectors.app cuma expose
+`net_foreign_inflow` — satu angka Rupiah, BUKAN split buy/sell terpisah
+per lot. Field `buy`/`sell` di response TIDAK BISA diisi dari sumber
+v1 ini — dihapus dari kontrak. Response cuma punya `net` (Rupiah, bukan
+lot). Lihat `migrations/0001_initial_schema.sql` (`stock_summary.foreign_net`,
+sekarang plain nullable column, bukan lagi `GENERATED` dari buy - sell).
+
+`type=domestic` juga GUGUR di v1 sebagai konsekuensi: perhitungan lama
+(`volume - foreign_buy`/`volume - foreign_sell`) butuh split buy/sell
+yang gak ada lagi. Belum ada pengganti — endpoint ini untuk sementara
+cuma menerima `type=foreign`, request dengan `type=domestic` return
+error 400 sampai ada sumber data domestic yang jelas.
+
 ```
 GET /api/dashboard/top-accumulation?type=foreign&date=YYYYMMDD&limit=20
 ```
 
-- `type` (required): `foreign` | `domestic`
+- `type` (required): `foreign` (`domestic` belum didukung di v1, lihat
+  catatan di atas)
 - `date` (optional, default: hari bursa terakhir yang sudah ke-sync)
 - `limit` (optional, default 20, max 100)
 
@@ -46,17 +63,14 @@ Response:
   "last_updated": "2026-07-18T02:15:00Z",
   "staleness_flag": "fresh",
   "data": [
-    { "stock_code": "BBCA", "stock_name": "Bank Central Asia Tbk", "buy": 1234567, "sell": 234567, "net": 1000000, "rank": 1 }
+    { "stock_code": "BBCA", "stock_name": "Bank Central Asia Tbk", "net": 1000000000, "rank": 1 }
   ]
 }
 ```
 
-Sumber: `stock_summary.foreign_buy/foreign_sell/foreign_net`, sorted by
-`net DESC` (untuk `type=foreign`). `type=domestic` dihitung sebagai
-`volume - foreign_buy`/`volume - foreign_sell` (bukan field langsung —
-CATAT: perlu diverifikasi ulang di Fase 2 apakah pendekatan ini akurat,
-karena IDX gak expose domestic_buy/sell eksplisit, cuma foreign; domestic
-di sini inferred, bukan field asli dari sumber data).
+Sumber: `stock_summary.foreign_net` (Rupiah, dari Sectors.app
+`net_foreign_inflow` — vendor pihak ketiga, bukan IDX langsung, lihat
+`docs/fase-2-vendor-validation.md`), sorted by `net DESC`.
 
 ### GET /api/dashboard/top-accumulation-foreign
 
@@ -65,9 +79,11 @@ GET /api/dashboard/top-accumulation-foreign?date=YYYYMMDD&limit=20
 ```
 
 Shortcut/alias untuk `top-accumulation?type=foreign`. Response shape
-identik dengan di atas (field `type` dihilangkan dari query karena fixed).
-Bukan endpoint terpisah secara implementasi — didokumentasikan sebagai
-entry sendiri karena disebut eksplisit sebagai fitur v1 terpisah di scope.
+identik dengan di atas (field `type` dihilangkan dari query karena fixed,
+termasuk revisi 2026-07-19 soal `net`-only, lihat catatan di endpoint
+`top-accumulation`). Bukan endpoint terpisah secara implementasi —
+didokumentasikan sebagai entry sendiri karena disebut eksplisit sebagai
+fitur v1 terpisah di scope.
 
 ### GET /api/dashboard/bandarmology — **v2-placeholder**
 
@@ -89,11 +105,22 @@ Response: { "status": "coming_soon" }
 
 ### GET /api/screening/market-summary
 
-**Catatan 2026-07-18**: `value` dan `frequency` DISKIP di v1 (keputusan
-Kris) — GOAPI (sumber `stock_summary` di v1) gak punya field ini. Kedua
-field tetap ada di response (biar kontrak stabil kalau nanti diisi),
-tapi nilainya `null` dan `sort=value`/`sort=frequency` gak fungsional
-sampai sumbernya ada.
+**Catatan 2026-07-18**: `value` DISKIP di v1 (keputusan Kris) — GOAPI
+(sumber `stock_summary` di v1) gak punya field ini. Field ini tetap ada
+di response (biar kontrak stabil kalau nanti diisi), tapi nilainya
+`null` dan `sort=value` gak fungsional sampai sumbernya ada.
+
+**Revisi 2026-07-19** (turunkan scope, `docs/fase-2-vendor-validation.md`
+Opsi C): `frequency` DIHILANGKAN TOTAL dari response — bukan lagi
+`null`, field-nya gak ada di JSON sama sekali. Alasan: `frequency`
+dikonfirmasi tidak tersedia dari vendor manapun yang dieksplorasi
+(GOAPI maupun Sectors.app), jadi gak ada skenario di mana field ini
+akan pernah terisi lewat arsitektur v1 (beda dari `value`, yang masih
+mungkin ketemu sumbernya nanti). `sort=frequency` juga dihapus dari
+opsi yang valid. Kolom `stock_summary.frequency` di D1 tetap ada
+(nullable) untuk future-proofing kalau Opsi A (ingestion non-vendor)
+dikerjakan lagi untuk kebutuhan lain — lihat
+`migrations/0001_initial_schema.sql`.
 
 ```
 GET /api/screening/market-summary?date=YYYYMMDD&sort=volume&limit=50&offset=0
@@ -101,8 +128,8 @@ GET /api/screening/market-summary?date=YYYYMMDD&sort=volume&limit=50&offset=0
 
 - `date` (optional, default hari bursa terakhir)
 - `sort` (optional, default `volume`): `volume` | `change_percent` |
-  `value` | `frequency` (dua terakhir gak fungsional di v1, lihat catatan
-  di atas — request tetap valid, hasil urutannya null semua kalau dipilih)
+  `value` (gak fungsional di v1, lihat catatan `value` di atas — request
+  tetap valid, hasil urutannya null semua kalau dipilih)
 - `limit` (optional, default 50, max 200), `offset` (optional, default 0)
 
 Response:
@@ -113,7 +140,7 @@ Response:
   "staleness_flag": "fresh",
   "pagination": { "limit": 50, "offset": 0, "total": 900 },
   "data": [
-    { "stock_code": "BBCA", "stock_name": "Bank Central Asia Tbk", "open": 9800, "high": 9900, "low": 9750, "close": 9875, "change": 75, "change_percent": 0.77, "volume": 12345600, "value": null, "frequency": null }
+    { "stock_code": "BBCA", "stock_name": "Bank Central Asia Tbk", "open": 9800, "high": 9900, "low": 9750, "close": 9875, "change": 75, "change_percent": 0.77, "volume": 12345600, "value": null }
   ]
 }
 ```
@@ -256,6 +283,20 @@ per kategori investor (data bulanan, sumber KSEI). Lihat
 `docs/schema-diagram.md` bagian `ownership_composition` untuk detail +
 open item soal sumber data yang belum terverifikasi.
 
+**Catatan 2026-07-19 — konflik dengan instruksi turunkan scope**: task
+due-diligence GOAPI (`docs/goapi-due-diligence.md`) sempat minta endpoint
+ini diturunkan ke v2-placeholder dengan alasan "order book bid/offer gak
+tersedia dari vendor manapun". Alasan itu sudah tidak berlaku terhadap
+endpoint ini — sejak revisi 2026-07-18 di atas, fitur ini sudah gak
+didefinisikan sebagai order book sama sekali, dan kolom `bid`/`offer`
+sudah dihapus total dari `stock_summary` (lihat
+`migrations/0001_initial_schema.sql` komentar di tabel `stock_summary`).
+Status TETAP v1 (backed oleh `ownership_composition`). Open item yang
+sebenarnya relevan buat endpoint ini masih yang lama: sumber data KSEI
+belum terverifikasi (lihat catatan di bawah dan
+`docs/schema-diagram.md`) — itu beda soal dari bid/offer, dan belum
+diputuskan ulang di task ini.
+
 ```
 GET /api/analysis/balance-position?stock_code=BBCA&period=2026-06
 ```
@@ -334,22 +375,30 @@ publik IDX.
 
 ## Ringkasan konsistensi lintas dokumen
 
-| Fitur | Dokumen scope | Status | Endpoint |
-| :--- | :--- | :--- | :--- |
-| Top Accumulation by Investor Type | task prompt | v1 | `/api/dashboard/top-accumulation` |
-| Top Accumulation Foreign | task prompt | v1 | `/api/dashboard/top-accumulation-foreign` |
-| Market Summary | task prompt | v1 | `/api/screening/market-summary` |
-| Sector Activity | task prompt | v1 | `/api/screening/sector-activity` |
-| Rotation Chart | task prompt | v1 | `/api/screening/rotation-chart` |
-| Transaction Chart | task prompt | v1 | `/api/analysis/transaction-chart` |
-| Seasonality Table | task prompt | v1 | `/api/analysis/seasonality` |
-| Balance Position Chart | task prompt | v1 | `/api/analysis/balance-position` |
-| Scripless Bertambah/Berkurang | task prompt | v2-placeholder | `/api/screening/scripless` |
-| Indikasi Nominee | task prompt | v2-placeholder | `/api/screening/nominee-indication` |
-| Done Detail Visualization | task prompt | v2-placeholder | `/api/analysis/done-detail` |
-| Bandarmology | task prompt | v2-placeholder | `/api/dashboard/bandarmology` |
-| Broker Stalker | task prompt | v2-placeholder | `/api/screening/broker-stalker` |
-| Broker Summary (per-saham) | task prompt | v2-placeholder | `/api/analysis/broker-summary` |
-| Potensi Buyback Institusi | task prompt, `docs/buyback-verification.md` | v2-placeholder | `/api/dashboard/buyback-potential` |
-| Inventory Chart | `docs/schema-diagram.md` (keputusan Fase 1) | v2-placeholder | `/api/analysis/inventory-chart` |
-| Money Management | task prompt | belum didefinisikan | (tidak ada) |
+**Update 2026-07-19** (turunkan scope, `docs/fase-2-vendor-validation.md`
+Opsi C + `docs/goapi-due-diligence.md`): tidak ada status v1/v2-placeholder
+di tabel ini yang berubah pada revisi ini — perubahan yang terjadi murni
+di level shape response (field dihilangkan/disederhanakan), lihat kolom
+Catatan. Bandarmology/Broker Stalker/Broker Summary (per-saham) SENGAJA
+TIDAK diubah statusnya — itu nunggu hasil due diligence GOAPI di
+`docs/goapi-due-diligence.md` sebelum diputuskan naik/tetap.
+
+| Fitur | Dokumen scope | Status | Endpoint | Catatan |
+| :--- | :--- | :--- | :--- | :--- |
+| Top Accumulation by Investor Type | task prompt | v1 | `/api/dashboard/top-accumulation` | Revisi 2026-07-19: sumber vendor (Sectors.app), `net`-only (Rupiah), `type=domestic` gugur di v1 |
+| Top Accumulation Foreign | task prompt | v1 | `/api/dashboard/top-accumulation-foreign` | Sama seperti di atas |
+| Market Summary | task prompt | v1 | `/api/screening/market-summary` | Revisi 2026-07-19: `frequency` dihilangkan total dari response (bukan cuma null) |
+| Sector Activity | task prompt | v1 | `/api/screening/sector-activity` | - |
+| Rotation Chart | task prompt | v1 | `/api/screening/rotation-chart` | - |
+| Transaction Chart | task prompt | v1 | `/api/analysis/transaction-chart` | - |
+| Seasonality Table | task prompt | v1 | `/api/analysis/seasonality` | - |
+| Balance Position Chart | task prompt | v1 | `/api/analysis/balance-position` | Status TIDAK diturunkan meski sempat diminta — lihat catatan konflik 2026-07-19 di section endpoint ini |
+| Scripless Bertambah/Berkurang | task prompt | v2-placeholder | `/api/screening/scripless` | - |
+| Indikasi Nominee | task prompt | v2-placeholder | `/api/screening/nominee-indication` | - |
+| Done Detail Visualization | task prompt | v2-placeholder | `/api/analysis/done-detail` | - |
+| Bandarmology | task prompt | v2-placeholder | `/api/dashboard/bandarmology` | TIDAK diubah — nunggu due diligence GOAPI (`docs/goapi-due-diligence.md`) |
+| Broker Stalker | task prompt | v2-placeholder | `/api/screening/broker-stalker` | TIDAK diubah — nunggu due diligence GOAPI |
+| Broker Summary (per-saham) | task prompt | v2-placeholder | `/api/analysis/broker-summary` | TIDAK diubah — nunggu due diligence GOAPI |
+| Potensi Buyback Institusi | task prompt, `docs/buyback-verification.md` | v2-placeholder | `/api/dashboard/buyback-potential` | - |
+| Inventory Chart | `docs/schema-diagram.md` (keputusan Fase 1) | v2-placeholder | `/api/analysis/inventory-chart` | - |
+| Money Management | task prompt | belum didefinisikan | (tidak ada) | - |
